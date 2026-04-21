@@ -5,6 +5,8 @@ import type { ModelStats } from "@/lib/stats";
 
 interface StatsTableProps {
   stats: ModelStats[];
+  selectedModel?: string | null;
+  onRowClick?: (model: string) => void;
 }
 
 function formatMs(ms: number | null): string {
@@ -13,7 +15,7 @@ function formatMs(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-export default function StatsTable({ stats }: StatsTableProps) {
+export default function StatsTable({ stats, selectedModel, onRowClick }: StatsTableProps) {
   if (stats.length === 0) {
     return <p className="text-muted text-center py-8">No data yet. Waiting for benchmark results...</p>;
   }
@@ -32,7 +34,13 @@ export default function StatsTable({ stats }: StatsTableProps) {
         </thead>
         <tbody>
           {stats.map((s) => (
-            <tr key={s.model} className="border-b border-border/50 hover:bg-bg-card/50">
+            <tr
+              key={s.model}
+              className={`border-b border-border/50 cursor-pointer transition-colors ${
+                selectedModel === s.model ? "bg-accent-blue/10" : "hover:bg-bg-card/50"
+              }`}
+              onClick={() => onRowClick?.(s.model)}
+            >
               <td className="py-3 pr-4 font-medium text-accent-blue">{s.model}</td>
               <td className="py-3 pr-4">
                 <ColorBadge value={s.overallPct} thresholds={{ green: 99, yellow: 95 }} invert suffix="%" />

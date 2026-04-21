@@ -23,9 +23,11 @@ interface ChartDataResponse {
 
 export default function Dashboard() {
   const [period, setPeriod] = useState("7d");
+  const [chartPeriod, setChartPeriod] = useState("7d");
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [stats, setStats] = useState<ModelStats[]>([]);
   const [chartData, setChartData] = useState<Record<string, Array<{ timestamp: string; ttft: number | null; tps: number | null; time: number | null }>>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchStats() {
@@ -42,9 +44,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function fetchChartData() {
+      if (!selectedModel) return;
       setLoading(true);
       try {
-        const res = await fetch(`/api/chart-data?period=${period}`);
+        const res = await fetch(`/api/chart-data?period=${chartPeriod}`);
         const data: ChartDataResponse = await res.json();
         setChartData(data.models);
       } catch (err) {
@@ -54,7 +57,20 @@ export default function Dashboard() {
       }
     }
     fetchChartData();
-  }, [period]);
+  }, [selectedModel, chartPeriod]);
+
+  function handleRowClick(model: string) {
+    if (selectedModel === model) {
+      setSelectedModel(null);
+    } else {
+      setChartPeriod(period);
+      setSelectedModel(model);
+    }
+  }
+
+  const filteredChartData = selectedModel
+    ? { [selectedModel]: chartData[selectedModel] ?? [] }
+    : {};
 
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary">
@@ -65,19 +81,36 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-bg-card rounded-xl border border-border p-6 mb-6">
-          <StatsTable stats={stats} />
+          <StatsTable
+            stats={stats}
+            selectedModel={selectedModel}
+            onRowClick={handleRowClick}
+          />
         </div>
 
-        {loading ? (
-          <p className="text-muted text-center py-8">Loading charts...</p>
-        ) : (
+        {selectedModel ? (
           <div className="space-y-6">
-            <TtftChart data={Object.fromEntries(
-              Object.entries(chartData).map(([model, points]) => [model, points.map((p) => ({ timestamp: p.timestamp, ttft: p.ttft }))])
-            )} />
-            <TpsChart data={Object.fromEntries(
-              Object.entries(chartData).map(([model, points]) => [model, points.map((p) => ({ timestamp: p.timestamp, tps: p.tps }))])
-            )} />
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{selectedModel}</h2>
+              <PeriodSelector period={chartPeriod} onPeriodChange={setChartPeriod} />
+            </div>
+            {loading ? (
+              <p className="text-muted text-center py-8">Loading charts...</p>
+            ) : (
+              <div className="space-y-6">
+                <TtftChart data={Object.fromEntries(
+                  Object.entries(filteredChartData).map(([model, points]) => [model, points.map((p) => ({ timestamp: p.timestamp, ttft: p.ttft }))])
+                )} />
+                <TpsChart data={Object.fromEntries(
+                  Object.entries(filteredChartData).map(([model, points]) => [model, points.map((p) => ({ timestamp: p.timestamp, tps: p.tps }))])
+                )} />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-bg-card rounded-xl border border-border p-12 text-center">
+            <p className="text-muted text-lg mb-2">Select a model from the table to view detailed charts.</p>
+            <p className="text-muted text-sm">Click on any row above to see TTFT and TPS graphs for that model.</p>
           </div>
         )}
       </div>
