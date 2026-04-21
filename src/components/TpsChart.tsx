@@ -27,8 +27,7 @@ export default function TpsChart({ data }: TpsChartProps) {
   const chartData = sortedTimestamps.map((ts) => {
     const point: Record<string, string | number | null> = { timestamp: ts };
     for (const model of models) {
-      point[`${model}_avg`] = null;
-      point[`${model}_median`] = null;
+      point[model] = null;
     }
     return point;
   });
@@ -37,8 +36,7 @@ export default function TpsChart({ data }: TpsChartProps) {
     for (const point of data[model]) {
       const idx = sortedTimestamps.indexOf(point.timestamp);
       if (idx >= 0 && point.tps !== null) {
-        (chartData[idx] as Record<string, unknown>)[`${model}_avg`] = point.tps;
-        (chartData[idx] as Record<string, unknown>)[`${model}_median`] = point.tps;
+        (chartData[idx] as Record<string, unknown>)[model] = point.tps;
       }
     }
   }
@@ -64,25 +62,13 @@ export default function TpsChart({ data }: TpsChartProps) {
           <Brush dataKey="timestamp" height={30} stroke="#58a6ff" tickFormatter={(v) => new Date(String(v)).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
           {models.map((model, i) => (
             <Line
-              key={`${model}_avg`}
+              key={model}
               type="monotone"
-              dataKey={`${model}_avg`}
-              name={`${model} (avg)`}
+              dataKey={model}
+              name={model}
               stroke={COLORS[i % COLORS.length]}
               dot={false}
               strokeWidth={2}
-            />
-          ))}
-          {models.map((model, i) => (
-            <Line
-              key={`${model}_median`}
-              type="monotone"
-              dataKey={`${model}_median`}
-              name={`${model} (median)`}
-              stroke={COLORS[i % COLORS.length]}
-              strokeDasharray="5 5"
-              dot={false}
-              strokeWidth={1}
             />
           ))}
         </LineChart>

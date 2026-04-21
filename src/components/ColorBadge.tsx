@@ -5,9 +5,10 @@ interface ColorBadgeProps {
   thresholds: { green: number; yellow: number };
   invert?: boolean;
   suffix?: string;
+  formatter?: (value: number) => string;
 }
 
-export default function ColorBadge({ value, thresholds, invert = false, suffix = "" }: ColorBadgeProps) {
+export default function ColorBadge({ value, thresholds, invert = false, suffix = "", formatter }: ColorBadgeProps) {
   let color: string;
   if (invert) {
     color = value >= thresholds.green ? "text-accent-green" : value >= thresholds.yellow ? "text-accent-yellow" : "text-accent-red";
@@ -15,5 +16,5 @@ export default function ColorBadge({ value, thresholds, invert = false, suffix =
     color = value <= thresholds.green ? "text-accent-green" : value <= thresholds.yellow ? "text-accent-yellow" : "text-accent-red";
   }
 
-  return <span className={`font-mono ${color}`}>{value}{suffix}</span>;
+  return <span className={`font-mono ${color}`}>{formatter ? formatter(value) : `${value}${suffix}`}</span>;
 }

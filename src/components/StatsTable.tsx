@@ -25,9 +25,9 @@ export default function StatsTable({ stats }: StatsTableProps) {
           <tr className="border-b border-border text-left text-muted">
             <th className="pb-3 pr-4 font-medium">Model</th>
             <th className="pb-3 pr-4 font-medium">Overall %</th>
-            <th className="pb-3 pr-4 font-medium">TTFT</th>
-            <th className="pb-3 pr-4 font-medium">TPS</th>
-            <th className="pb-3 font-medium">Time</th>
+            <th className="pb-3 pr-4 font-medium">TTFT <span className="text-muted text-xs font-normal">avg (med)</span></th>
+            <th className="pb-3 pr-4 font-medium">TPS <span className="text-muted text-xs font-normal">avg (med)</span></th>
+            <th className="pb-3 font-medium">Time <span className="text-muted text-xs font-normal">avg (med)</span></th>
           </tr>
         </thead>
         <tbody>
@@ -40,7 +40,7 @@ export default function StatsTable({ stats }: StatsTableProps) {
               <td className="py-3 pr-4">
                 {s.ttftAvgMs !== null ? (
                   <>
-                    <ColorBadge value={s.ttftAvgMs} thresholds={{ green: 500, yellow: 2000 }} suffix="ms" />{" "}
+                    <ColorBadge value={s.ttftAvgMs} thresholds={{ green: 500, yellow: 2000 }} formatter={formatMs} />{" "}
                     <span className="text-muted text-xs">({formatMs(s.ttftMedianMs)})</span>
                   </>
                 ) : "—"}
@@ -49,14 +49,14 @@ export default function StatsTable({ stats }: StatsTableProps) {
                 {s.tpsAvg !== null ? (
                   <>
                     <ColorBadge value={s.tpsAvg} thresholds={{ green: 30, yellow: 10 }} invert suffix=" t/s" />{" "}
-                    <span className="text-muted text-xs">({s.tpsMedian})</span>
+                    <span className="text-muted text-xs">({s.tpsMedian !== null ? s.tpsMedian.toFixed(1) : "—"})</span>
                   </>
                 ) : "—"}
               </td>
               <td className="py-3">
                 {s.timeAvgMs !== null ? (
                   <>
-                    <ColorBadge value={s.timeAvgMs} thresholds={{ green: 10000, yellow: 30000 }} suffix="ms" />{" "}
+                    <ColorBadge value={s.timeAvgMs} thresholds={{ green: 10000, yellow: 30000 }} formatter={formatMs} />{" "}
                     <span className="text-muted text-xs">({formatMs(s.timeMedianMs)})</span>
                   </>
                 ) : "—"}
