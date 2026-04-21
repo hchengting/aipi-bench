@@ -5,8 +5,8 @@ import type { ModelStats } from "@/lib/stats";
 
 interface StatsTableProps {
   stats: ModelStats[];
-  selectedModel?: string | null;
-  onRowClick?: (model: string) => void;
+  selectedKey?: string | null;
+  onRowClick?: (key: string) => void;
 }
 
 function formatMs(ms: number | null): string {
@@ -15,7 +15,11 @@ function formatMs(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-export default function StatsTable({ stats, selectedModel, onRowClick }: StatsTableProps) {
+function entryKey(stats: ModelStats): string {
+  return `${stats.provider}|${stats.model}`;
+}
+
+export default function StatsTable({ stats, selectedKey, onRowClick }: StatsTableProps) {
   if (stats.length === 0) {
     return <p className="text-muted text-center py-8">No data yet. Waiting for benchmark results...</p>;
   }
@@ -25,6 +29,7 @@ export default function StatsTable({ stats, selectedModel, onRowClick }: StatsTa
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-muted">
+            <th className="pb-3 pr-4 font-medium">Provider</th>
             <th className="pb-3 pr-4 font-medium">Model</th>
             <th className="pb-3 pr-4 font-medium">Overall %</th>
             <th className="pb-3 pr-4 font-medium">TTFT <span className="text-muted text-xs font-normal">avg (med)</span></th>
@@ -33,44 +38,48 @@ export default function StatsTable({ stats, selectedModel, onRowClick }: StatsTa
           </tr>
         </thead>
         <tbody>
-          {stats.map((s) => (
-            <tr
-              key={s.model}
-              className={`border-b border-border/50 cursor-pointer transition-colors ${
-                selectedModel === s.model ? "bg-accent-blue/10" : "hover:bg-bg-card/50"
-              }`}
-              onClick={() => onRowClick?.(s.model)}
-            >
-              <td className="py-3 pr-4 font-medium text-accent-blue">{s.model}</td>
-              <td className="py-3 pr-4">
-                <ColorBadge value={s.overallPct} thresholds={{ green: 99, yellow: 95 }} invert suffix="%" />
-              </td>
-              <td className="py-3 pr-4">
-                {s.ttftAvgMs !== null ? (
-                  <>
-                    <ColorBadge value={s.ttftAvgMs} thresholds={{ green: 500, yellow: 2000 }} formatter={formatMs} />{" "}
-                    <span className="text-muted text-xs">({formatMs(s.ttftMedianMs)})</span>
-                  </>
-                ) : "—"}
-              </td>
-              <td className="py-3 pr-4">
-                {s.tpsAvg !== null ? (
-                  <>
-                    <ColorBadge value={s.tpsAvg} thresholds={{ green: 30, yellow: 10 }} invert suffix=" t/s" />{" "}
-                    <span className="text-muted text-xs">({s.tpsMedian !== null ? s.tpsMedian.toFixed(1) : "—"})</span>
-                  </>
-                ) : "—"}
-              </td>
-              <td className="py-3">
-                {s.timeAvgMs !== null ? (
-                  <>
-                    <ColorBadge value={s.timeAvgMs} thresholds={{ green: 10000, yellow: 30000 }} formatter={formatMs} />{" "}
-                    <span className="text-muted text-xs">({formatMs(s.timeMedianMs)})</span>
-                  </>
-                ) : "—"}
-              </td>
-            </tr>
-          ))}
+          {stats.map((s) => {
+            const key = entryKey(s);
+            return (
+              <tr
+                key={key}
+                className={`border-b border-border/50 cursor-pointer transition-colors ${
+                  selectedKey === key ? "bg-accent-blue/10" : "hover:bg-bg-card/50"
+                }`}
+                onClick={() => onRowClick?.(key)}
+              >
+                <td className="py-3 pr-4 text-muted">{s.provider}</td>
+                <td className="py-3 pr-4 font-medium text-accent-blue">{s.alias || s.model}</td>
+                <td className="py-3 pr-4">
+                  <ColorBadge value={s.overallPct} thresholds={{ green: 99, yellow: 95 }} invert suffix="%" />
+                </td>
+                <td className="py-3 pr-4">
+                  {s.ttftAvgMs !== null ? (
+                    <>
+                      <ColorBadge value={s.ttftAvgMs} thresholds={{ green: 500, yellow: 2000 }} formatter={formatMs} />{" "}
+                      <span className="text-muted text-xs">({formatMs(s.ttftMedianMs)})</span>
+                    </>
+                  ) : "—"}
+                </td>
+                <td className="py-3 pr-4">
+                  {s.tpsAvg !== null ? (
+                    <>
+                      <ColorBadge value={s.tpsAvg} thresholds={{ green: 30, yellow: 10 }} invert suffix=" t/s" />{" "}
+                      <span className="text-muted text-xs">({s.tpsMedian !== null ? s.tpsMedian.toFixed(1) : "—"})</span>
+                    </>
+                  ) : "—"}
+                </td>
+                <td className="py-3">
+                  {s.timeAvgMs !== null ? (
+                    <>
+                      <ColorBadge value={s.timeAvgMs} thresholds={{ green: 10000, yellow: 30000 }} formatter={formatMs} />{" "}
+                      <span className="text-muted text-xs">({formatMs(s.timeMedianMs)})</span>
+                    </>
+                  ) : "—"}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

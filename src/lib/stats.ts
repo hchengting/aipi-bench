@@ -1,5 +1,7 @@
 export interface ModelStats {
+  provider: string;
   model: string;
+  alias: string | null;
   totalRequests: number;
   successfulRequests: number;
   overallPct: number;
@@ -22,24 +24,28 @@ function median(values: number[]): number | null {
 
 export function computeStats(
   rows: Array<{
+    provider: string;
     model: string;
+    alias: string | null;
     success: boolean;
     ttftMs: number | null;
     tps: number | null;
     totalTimeMs: number | null;
   }>
 ): ModelStats[] {
-  const byModel = new Map<string, typeof rows>();
+  const byKey = new Map<string, typeof rows>();
 
   for (const row of rows) {
-    const existing = byModel.get(row.model) || [];
+    const key = `${row.provider}|${row.model}`;
+    const existing = byKey.get(key) || [];
     existing.push(row);
-    byModel.set(row.model, existing);
+    byKey.set(key, existing);
   }
 
   const stats: ModelStats[] = [];
 
-  for (const [model, modelRows] of byModel) {
+  for (const [, modelRows] of byKey) {
+    const first = modelRows[0];
     const totalRequests = modelRows.length;
     const successfulRequests = modelRows.filter((r) => r.success).length;
     const overallPct = totalRequests > 0 ? Math.round((successfulRequests / totalRequests) * 10000) / 100 : 0;
@@ -52,7 +58,9 @@ export function computeStats(
     const avg = (arr: number[]) => (arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
 
     stats.push({
-      model,
+      provider: first.provider,
+      model: first.model,
+      alias: first.alias,
       totalRequests,
       successfulRequests,
       overallPct,

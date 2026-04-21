@@ -24,7 +24,7 @@ interface ChartDataResponse {
 export default function Dashboard() {
   const [period, setPeriod] = useState("7d");
   const [chartPeriod, setChartPeriod] = useState("7d");
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [stats, setStats] = useState<ModelStats[]>([]);
   const [chartData, setChartData] = useState<Record<string, Array<{ timestamp: string; ttft: number | null; tps: number | null; time: number | null }>>>({});
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function fetchChartData() {
-      if (!selectedModel) return;
+      if (!selectedKey) return;
       setLoading(true);
       try {
         const res = await fetch(`/api/chart-data?period=${chartPeriod}`);
@@ -57,19 +57,22 @@ export default function Dashboard() {
       }
     }
     fetchChartData();
-  }, [selectedModel, chartPeriod]);
+  }, [selectedKey, chartPeriod]);
 
-  function handleRowClick(model: string) {
-    if (selectedModel === model) {
-      setSelectedModel(null);
+  function handleRowClick(key: string) {
+    if (selectedKey === key) {
+      setSelectedKey(null);
     } else {
       setChartPeriod(period);
-      setSelectedModel(model);
+      setSelectedKey(key);
     }
   }
 
-  const filteredChartData = selectedModel
-    ? { [selectedModel]: chartData[selectedModel] ?? [] }
+  const selectedStat = stats.find((s) => `${s.provider}|${s.model}` === selectedKey);
+  const displayName = selectedStat?.alias || selectedStat?.model || selectedKey || "";
+
+  const filteredChartData = selectedKey
+    ? { [selectedKey]: chartData[selectedKey] ?? [] }
     : {};
 
   return (
@@ -83,15 +86,15 @@ export default function Dashboard() {
         <div className="bg-bg-card rounded-xl border border-border p-6 mb-6">
           <StatsTable
             stats={stats}
-            selectedModel={selectedModel}
+            selectedKey={selectedKey}
             onRowClick={handleRowClick}
           />
         </div>
 
-        {selectedModel ? (
+        {selectedKey ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{selectedModel}</h2>
+              <h2 className="text-lg font-semibold">{displayName}</h2>
               <PeriodSelector period={chartPeriod} onPeriodChange={setChartPeriod} />
             </div>
             {loading ? (
@@ -99,10 +102,10 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-6">
                 <TpsChart data={Object.fromEntries(
-                  Object.entries(filteredChartData).map(([model, points]) => [model, points.map((p) => ({ timestamp: p.timestamp, tps: p.tps }))])
+                  Object.entries(filteredChartData).map(([key, points]) => [key, points.map((p) => ({ timestamp: p.timestamp, tps: p.tps }))])
                 )} />
                 <TtftChart data={Object.fromEntries(
-                  Object.entries(filteredChartData).map(([model, points]) => [model, points.map((p) => ({ timestamp: p.timestamp, ttft: p.ttft }))])
+                  Object.entries(filteredChartData).map(([key, points]) => [key, points.map((p) => ({ timestamp: p.timestamp, ttft: p.ttft }))])
                 )} />
               </div>
             )}

@@ -1,5 +1,6 @@
 import { parseSSEStream } from "./sse-parser";
 import { config } from "@/lib/config";
+import type { ConfigEntry } from "@/lib/config";
 
 export interface BenchmarkResult {
   success: boolean;
@@ -11,8 +12,9 @@ export interface BenchmarkResult {
   errorMessage: string | null;
 }
 
-export async function runBenchmark(model: string): Promise<BenchmarkResult> {
-  const prompt = `[${new Date().toISOString()}] ${config.prompt}`;
+export async function runBenchmark(entry: ConfigEntry): Promise<BenchmarkResult> {
+  const promptText = entry.prompt ?? config.prompt;
+  const prompt = `[${new Date().toISOString()}] ${promptText}`;
   const startTime = performance.now();
 
   try {
@@ -20,14 +22,14 @@ export async function runBenchmark(model: string): Promise<BenchmarkResult> {
     const timeout = setTimeout(() => controller.abort(), config.requestTimeout);
 
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
+    if (entry.apiKey) headers["Authorization"] = `Bearer ${entry.apiKey}`;
 
-    const response = await fetch(`${config.apiBaseUrl}/chat/completions`, {
+    const response = await fetch(`${entry.endpoint}/chat/completions`, {
       method: "POST",
       headers,
       signal: controller.signal,
       body: JSON.stringify({
-        model,
+        model: entry.model,
         messages: [{ role: "user", content: prompt }],
         stream: true,
         stream_options: { include_usage: true },
@@ -54,7 +56,6 @@ export async function runBenchmark(model: string): Promise<BenchmarkResult> {
     let firstContentChunk = true;
 
     for await (const chunk of parseSSEStream(response)) {
-      // Capture TTFT on first content-bearing chunk
       const delta = chunk.choices?.[0]?.delta;
       if (delta?.content && firstContentChunk) {
         ttftMs = Math.round(performance.now() - startTime);
@@ -63,7 +64,6 @@ export async function runBenchmark(model: string): Promise<BenchmarkResult> {
 
       if (delta?.content) content += delta.content;
 
-      // Capture usage data from final chunk
       if (chunk.usage?.completion_tokens) {
         tokensGenerated = chunk.usage.completion_tokens;
       }
@@ -71,7 +71,6 @@ export async function runBenchmark(model: string): Promise<BenchmarkResult> {
 
     const totalTimeMs = Math.round(performance.now() - startTime);
 
-    // Fallback token estimation if usage wasn't provided
     if (tokensGenerated === null) {
       tokensGenerated = Math.round(content.length / 4);
     }

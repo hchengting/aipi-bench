@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
   const rows = await prisma.result.findMany({
     where: { timestamp: { gte: since } },
     select: {
+      provider: true,
       model: true,
+      alias: true,
       success: true,
       ttftMs: true,
       tps: true,

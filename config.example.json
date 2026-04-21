@@ -1,0 +1,23 @@
+{
+  "prompt": "Write a 2000 word long story",
+  "interval": 7200000,
+  "requestTimeout": 120000,
+  "entries": [
+    {
+      "provider": "Ollama",
+      "endpoint": "http://localhost:11434/v1",
+      "apiKey": "",
+      "model": "llama3",
+      "alias": "Llama 3"
+    },
+    {
+      "provider": "OpenRouter",
+      "endpoint": "https://openrouter.ai/api/v1",
+      "apiKey": "sk-your-api-key",
+      "model": "kimi-k2.6:cloud",
+      "alias": "Kimi K2.6",
+      "interval": 3600000,
+      "prompt": "Write a poem"
+    }
+  ]
+}

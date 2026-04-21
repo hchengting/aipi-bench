@@ -9,7 +9,9 @@ datasource db {
 
 model Result {
   id              Int      @id @default(autoincrement())
+  provider        String
   model           String
+  alias           String?
   timestamp       DateTime @default(now())
   success         Boolean  @default(true)
   ttftMs          Int?
@@ -19,5 +21,5 @@ model Result {
   promptSent      String?
   errorMessage    String?
 
-  @@index([model, timestamp])
+  @@index([provider, model, timestamp])
 }

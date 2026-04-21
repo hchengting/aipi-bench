@@ -17,15 +17,16 @@ export async function GET(request: NextRequest) {
   const since = new Date(Date.now() - ms);
   const results = await prisma.result.findMany({
     where: { timestamp: { gte: since }, success: true },
-    select: { model: true, timestamp: true, ttftMs: true, tps: true, totalTimeMs: true },
+    select: { provider: true, model: true, timestamp: true, ttftMs: true, tps: true, totalTimeMs: true },
     orderBy: { timestamp: "asc" },
   });
 
-  const byModel: Record<string, Array<{ timestamp: string; ttft: number | null; tps: number | null; time: number | null }>> = {};
+  const byKey: Record<string, Array<{ timestamp: string; ttft: number | null; tps: number | null; time: number | null }>> = {};
 
   for (const r of results) {
-    if (!byModel[r.model]) byModel[r.model] = [];
-    byModel[r.model].push({
+    const key = `${r.provider}|${r.model}`;
+    if (!byKey[key]) byKey[key] = [];
+    byKey[key].push({
       timestamp: r.timestamp.toISOString(),
       ttft: r.ttftMs,
       tps: r.tps,
@@ -33,5 +34,5 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.json({ period, from: since.toISOString(), to: new Date().toISOString(), models: byModel });
+  return NextResponse.json({ period, from: since.toISOString(), to: new Date().toISOString(), models: byKey });
 }

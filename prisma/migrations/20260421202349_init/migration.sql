@@ -1,7 +1,9 @@
 -- CreateTable
 CREATE TABLE "Result" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "provider" TEXT NOT NULL,
     "model" TEXT NOT NULL,
+    "alias" TEXT,
     "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "success" BOOLEAN NOT NULL DEFAULT true,
     "ttftMs" INTEGER,
@@ -13,4 +15,4 @@ CREATE TABLE "Result" (
 );
 
 -- CreateIndex
-CREATE INDEX "Result_model_timestamp_idx" ON "Result"("model", "timestamp");
+CREATE INDEX "Result_provider_model_timestamp_idx" ON "Result"("provider", "model", "timestamp");
