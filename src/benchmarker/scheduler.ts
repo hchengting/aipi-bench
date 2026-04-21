@@ -6,6 +6,7 @@ import type { ConfigEntry } from "@/lib/config";
 interface ScheduleState {
   entry: ConfigEntry;
   nextRunAt: number;
+  running: boolean;
 }
 
 let tickId: ReturnType<typeof setInterval> | null = null;
@@ -20,31 +21,41 @@ function getInterval(entry: ConfigEntry): number {
 }
 
 async function runEntry(state: ScheduleState) {
+  if (state.running) return;
+  state.running = true;
+
   const entry = state.entry;
-  const result = await runBenchmark(entry);
 
-  await prisma.result.create({
-    data: {
-      provider: entry.provider,
-      model: entry.model,
-      alias: entry.alias,
-      success: result.success,
-      ttftMs: result.ttftMs,
-      tps: result.tps,
-      totalTimeMs: result.totalTimeMs,
-      tokensGenerated: result.tokensGenerated,
-      promptSent: result.promptSent,
-      errorMessage: result.errorMessage,
-    },
-  });
+  try {
+    const result = await runBenchmark(entry);
 
-  const status = result.success
-    ? `TTFT=${result.ttftMs}ms TPS=${result.tps} Time=${result.totalTimeMs}ms`
-    : `FAILED: ${result.errorMessage}`;
+    await prisma.result.create({
+      data: {
+        provider: entry.provider,
+        model: entry.model,
+        alias: entry.alias,
+        success: result.success,
+        ttftMs: result.ttftMs,
+        tps: result.tps,
+        totalTimeMs: result.totalTimeMs,
+        tokensGenerated: result.tokensGenerated,
+        promptSent: result.promptSent,
+        errorMessage: result.errorMessage,
+      },
+    });
 
-  console.log(`[benchmarker] ${entry.provider}/${entry.model}: ${status}`);
+    const status = result.success
+      ? `TTFT=${result.ttftMs}ms TPS=${result.tps} Time=${result.totalTimeMs}ms`
+      : `FAILED: ${result.errorMessage}`;
 
-  state.nextRunAt = Date.now() + getInterval(entry);
+    console.log(`[benchmarker] ${entry.provider}/${entry.model}: ${status}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[benchmarker] Error running ${entry.provider}/${entry.model}:`, message);
+  } finally {
+    state.nextRunAt = Date.now() + getInterval(entry);
+    state.running = false;
+  }
 }
 
 async function tick() {
@@ -52,7 +63,7 @@ async function tick() {
   const due: ScheduleState[] = [];
 
   for (const state of schedules.values()) {
-    if (state.nextRunAt <= now) {
+    if (state.nextRunAt <= now && !state.running) {
       due.push(state);
     }
   }
@@ -82,14 +93,10 @@ export function startScheduler() {
   for (const entry of config.entries) {
     schedules.set(entryKey(entry), {
       entry,
-      nextRunAt: now, // run immediately on startup
+      nextRunAt: now,
+      running: false,
     });
   }
-
-  // Run all entries immediately
-  runAllModels().catch((err) =>
-    console.error("[benchmarker] Error in initial run:", err)
-  );
 
   // Determine tick interval: minimum entry interval, capped at 60s minimum
   const intervals = config.entries.map(getInterval);
@@ -104,6 +111,11 @@ export function startScheduler() {
 
   console.log(
     `[benchmarker] Scheduler started — tick: ${tickInterval / 1000}s, entries: ${config.entries.length}`
+  );
+
+  // Run initial tick immediately so entries fire on startup
+  tick().catch((err) =>
+    console.error("[benchmarker] Error in initial tick:", err)
   );
 }
 
