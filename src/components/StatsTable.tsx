@@ -51,12 +51,12 @@ export default function StatsTable({ stats, selectedKey, onRowClick }: StatsTabl
                 <td className="py-3 pr-4 text-muted">{s.provider}</td>
                 <td className="py-3 pr-4 font-medium text-accent-blue">{s.alias || s.model}</td>
                 <td className="py-3 pr-4">
-                  <ColorBadge value={s.overallPct} thresholds={{ green: 99, yellow: 95 }} invert suffix="%" />
+                  <ColorBadge value={s.overallPct} thresholds={{ green: 98, yellow: 95 }} invert suffix="%" />
                 </td>
                 <td className="py-3 pr-4">
                   {s.ttftAvgMs !== null ? (
                     <>
-                      <ColorBadge value={s.ttftAvgMs} thresholds={{ green: 500, yellow: 2000 }} formatter={formatMs} />{" "}
+                      <ColorBadge value={s.ttftAvgMs} thresholds={{ green: 5000, yellow: 10000 }} formatter={formatMs} />{" "}
                       <span className="text-muted text-xs">({formatMs(s.ttftMedianMs)})</span>
                     </>
                   ) : "—"}
@@ -64,7 +64,7 @@ export default function StatsTable({ stats, selectedKey, onRowClick }: StatsTabl
                 <td className="py-3 pr-4">
                   {s.tpsAvg !== null ? (
                     <>
-                      <ColorBadge value={s.tpsAvg} thresholds={{ green: 30, yellow: 10 }} invert suffix=" t/s" />{" "}
+                      <ColorBadge value={s.tpsAvg} thresholds={{ green: 40, yellow: 30 }} invert suffix=" t/s" />{" "}
                       <span className="text-muted text-xs">({s.tpsMedian !== null ? s.tpsMedian.toFixed(1) : "—"})</span>
                     </>
                   ) : "—"}
@@ -72,7 +72,7 @@ export default function StatsTable({ stats, selectedKey, onRowClick }: StatsTabl
                 <td className="py-3">
                   {s.timeAvgMs !== null ? (
                     <>
-                      <ColorBadge value={s.timeAvgMs} thresholds={{ green: 10000, yellow: 30000 }} formatter={formatMs} />{" "}
+                      <span className="font-mono">{formatMs(s.timeAvgMs)}</span>{" "}
                       <span className="text-muted text-xs">({formatMs(s.timeMedianMs)})</span>
                     </>
                   ) : "—"}
