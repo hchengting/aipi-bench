@@ -13,6 +13,10 @@ interface TpsChartProps {
 
 const COLORS = ["#58a6ff", "#3fb950", "#d29922", "#f85149", "#bc8cff", "#79c0ff"];
 
+function safeKey(model: string) {
+  return `series_${model.replace(/\./g, "_")}`;
+}
+
 export default function TpsChart({ data }: TpsChartProps) {
   const models = Object.keys(data);
   if (models.length === 0) return <p className="text-muted text-center py-4">No TPS data available</p>;
@@ -27,7 +31,7 @@ export default function TpsChart({ data }: TpsChartProps) {
   const chartData = sortedTimestamps.map((ts) => {
     const point: Record<string, string | number | null> = { timestamp: ts };
     for (const model of models) {
-      point[model] = null;
+      point[safeKey(model)] = null;
     }
     return point;
   });
@@ -36,7 +40,7 @@ export default function TpsChart({ data }: TpsChartProps) {
     for (const point of data[model]) {
       const idx = sortedTimestamps.indexOf(point.timestamp);
       if (idx >= 0 && point.tps !== null) {
-        (chartData[idx] as Record<string, unknown>)[model] = point.tps;
+        (chartData[idx] as Record<string, unknown>)[safeKey(model)] = point.tps;
       }
     }
   }
@@ -62,9 +66,9 @@ export default function TpsChart({ data }: TpsChartProps) {
           <Brush dataKey="timestamp" height={30} stroke="#58a6ff" tickFormatter={(v) => new Date(String(v)).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
           {models.map((model, i) => (
             <Line
-              key={model}
+              key={safeKey(model)}
               type="monotone"
-              dataKey={model}
+              dataKey={safeKey(model)}
               name={model}
               stroke={COLORS[i % COLORS.length]}
               dot={false}
