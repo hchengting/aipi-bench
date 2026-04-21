@@ -1,7 +1,7 @@
 {
   "prompt": "Write a 2000 word long story",
-  "interval": 7200000,
-  "requestTimeout": 120000,
+  "interval": 7200,
+  "requestTimeout": 120,
   "entries": [
     {
       "provider": "Ollama",
@@ -16,7 +16,7 @@
       "apiKey": "sk-your-api-key",
       "model": "kimi-k2.6:cloud",
       "alias": "Kimi K2.6",
-      "interval": 3600000,
+      "interval": 3600,
       "prompt": "Write a poem"
     }
   ]

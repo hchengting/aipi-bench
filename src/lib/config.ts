@@ -34,14 +34,14 @@ function loadConfig(): AppConfig {
     apiKey: String(e.apiKey || ""),
     model: String(e.model),
     alias: String(e.alias || e.model),
-    interval: e.interval !== undefined ? Number(e.interval) : undefined,
+    interval: e.interval !== undefined ? Number(e.interval) * 1000 : undefined,
     prompt: e.prompt !== undefined ? String(e.prompt) : undefined,
   }));
 
   return {
     prompt: String(json.prompt || "Write a 2000 word long story"),
-    interval: Number(json.interval || 7200000),
-    requestTimeout: Number(json.requestTimeout || 120000),
+    interval: Number(json.interval || 7200) * 1000,
+    requestTimeout: Number(json.requestTimeout || 120) * 1000,
     port: parseInt(process.env.PORT || "3000", 10),
     entries,
   };
