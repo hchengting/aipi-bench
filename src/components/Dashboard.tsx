@@ -75,6 +75,10 @@ export default function Dashboard() {
     ? { [selectedKey]: chartData[selectedKey] ?? [] }
     : {};
 
+  const modelInfo = selectedStat && selectedKey
+    ? { [selectedKey]: { alias: selectedStat.alias, provider: selectedStat.provider, model: selectedStat.model } }
+    : undefined;
+
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -103,10 +107,10 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <TpsChart data={Object.fromEntries(
                   Object.entries(filteredChartData).map(([key, points]) => [key, points.map((p) => ({ timestamp: p.timestamp, tps: p.tps }))])
-                )} />
+                )} modelInfo={modelInfo} />
                 <TtftChart data={Object.fromEntries(
                   Object.entries(filteredChartData).map(([key, points]) => [key, points.map((p) => ({ timestamp: p.timestamp, ttft: p.ttft }))])
-                )} />
+                )} modelInfo={modelInfo} />
               </div>
             )}
           </div>

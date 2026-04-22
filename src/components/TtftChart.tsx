@@ -7,8 +7,15 @@ interface ChartDataPoint {
   ttft: number | null;
 }
 
+interface ModelInfo {
+  alias: string | null;
+  provider: string;
+  model: string;
+}
+
 interface TtftChartProps {
   data: Record<string, ChartDataPoint[]>;
+  modelInfo?: Record<string, ModelInfo>;
 }
 
 const COLORS = ["#58a6ff", "#3fb950", "#d29922", "#f85149", "#bc8cff", "#79c0ff"];
@@ -17,11 +24,51 @@ function safeKey(model: string) {
   return `series_${model.replace(/\./g, "_")}`;
 }
 
-export default function TtftChart({ data }: TtftChartProps) {
+interface TooltipPayloadEntry {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string | number;
+  modelInfo?: Record<string, ModelInfo>;
+  unit: string;
+}
+
+function ChartTooltip({ active, payload, label, modelInfo, unit }: ChartTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-bg-card px-3 py-2 shadow-lg">
+      <div className="mb-1 text-xs text-muted">{new Date(String(label)).toLocaleString()}</div>
+      {payload.map((entry, index) => {
+        const info = modelInfo?.[entry.name];
+        const displayName = info?.alias || info?.model || entry.name;
+        const provider = info?.provider;
+        return (
+          <div key={index} className="flex items-start gap-2">
+            <span className="mt-1 inline-block h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+            <div className="flex-1">
+              <div className="text-sm font-medium">{displayName}</div>
+              {provider && <div className="text-xs text-muted">{provider}</div>}
+            </div>
+            <div className="text-sm font-medium">
+              {entry.value !== null && entry.value !== undefined ? `${Number(entry.value).toFixed(2)}${unit}` : "—"}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function TtftChart({ data, modelInfo }: TtftChartProps) {
   const models = Object.keys(data);
   if (models.length === 0) return <p className="text-muted text-center py-4">No TTFT data available</p>;
 
-  // Merge all model data into unified time-series per model
   const timestamps = new Set<string>();
   for (const model of models) {
     for (const point of data[model]) {
@@ -37,19 +84,18 @@ export default function TtftChart({ data }: TtftChartProps) {
     return point;
   });
 
-  // For individual benchmark runs, avg == the value itself
   for (const model of models) {
     for (const point of data[model]) {
       const idx = sortedTimestamps.indexOf(point.timestamp);
       if (idx >= 0 && point.ttft !== null) {
-        (chartData[idx] as Record<string, unknown>)[safeKey(model)] = point.ttft;
+        (chartData[idx] as Record<string, unknown>)[safeKey(model)] = point.ttft / 1000;
       }
     }
   }
 
   return (
     <div className="bg-bg-card rounded-xl border border-border p-4">
-      <h3 className="text-sm font-medium text-muted mb-3">TTFT (ms)</h3>
+      <h3 className="text-sm font-medium text-muted mb-3">TTFT (s)</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
@@ -60,10 +106,7 @@ export default function TtftChart({ data }: TtftChartProps) {
             fontSize={12}
           />
           <YAxis stroke="#8b949e" fontSize={12} />
-          <Tooltip
-            contentStyle={{ backgroundColor: "#1c2128", border: "1px solid #30363d", borderRadius: "8px" }}
-            labelFormatter={(v) => new Date(String(v)).toLocaleString()}
-          />
+          <Tooltip content={<ChartTooltip modelInfo={modelInfo} unit="s" />} />
           <Brush dataKey="timestamp" height={30} stroke="#58a6ff" tickFormatter={(v) => new Date(String(v)).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
           {models.map((model, i) => (
             <Line

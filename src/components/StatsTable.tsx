@@ -9,10 +9,9 @@ interface StatsTableProps {
   onRowClick?: (key: string) => void;
 }
 
-function formatMs(ms: number | null): string {
+function formatSeconds(ms: number | null): string {
   if (ms === null) return "—";
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 1000).toFixed(2)}s`;
 }
 
 function entryKey(stats: ModelStats): string {
@@ -56,8 +55,8 @@ export default function StatsTable({ stats, selectedKey, onRowClick }: StatsTabl
                 <td className="py-3 pr-4">
                   {s.ttftAvgMs !== null ? (
                     <>
-                      <ColorBadge value={s.ttftAvgMs} thresholds={{ green: 5000, yellow: 10000 }} formatter={formatMs} />{" "}
-                      <span className="text-muted text-xs">({formatMs(s.ttftMedianMs)})</span>
+                      <ColorBadge value={s.ttftAvgMs / 1000} thresholds={{ green: 5, yellow: 10 }} formatter={(v) => `${v.toFixed(2)}s`} />{" "}
+                      <span className="text-muted text-xs">({formatSeconds(s.ttftMedianMs)})</span>
                     </>
                   ) : "—"}
                 </td>
@@ -72,8 +71,8 @@ export default function StatsTable({ stats, selectedKey, onRowClick }: StatsTabl
                 <td className="py-3">
                   {s.timeAvgMs !== null ? (
                     <>
-                      <span className="font-mono">{formatMs(s.timeAvgMs)}</span>{" "}
-                      <span className="text-muted text-xs">({formatMs(s.timeMedianMs)})</span>
+                      <span className="font-mono">{formatSeconds(s.timeAvgMs)}</span>{" "}
+                      <span className="text-muted text-xs">({formatSeconds(s.timeMedianMs)})</span>
                     </>
                   ) : "—"}
                 </td>
