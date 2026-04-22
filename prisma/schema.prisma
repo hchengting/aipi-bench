@@ -23,3 +23,15 @@ model Result {
 
   @@index([provider, model, timestamp])
 }
+
+model CommunityResult {
+  id          Int      @id @default(autoincrement())
+  provider    String
+  model       String
+  alias       String?
+  timestamp   DateTime @default(now())
+  ttftMs      Int?
+  tps         Float?
+
+  @@index([provider, model, timestamp])
+}

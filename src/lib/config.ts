@@ -11,12 +11,19 @@ export interface ConfigEntry {
   prompt?: string;
 }
 
+export interface CommunityProvider {
+  provider: string;
+  endpoint: string;
+  models: Array<{ model: string; alias: string }>;
+}
+
 export interface AppConfig {
   prompt: string;
   interval: number;
   requestTimeout: number;
   port: number;
   entries: ConfigEntry[];
+  community?: CommunityProvider[];
 }
 
 function loadConfig(): AppConfig {
@@ -38,12 +45,22 @@ function loadConfig(): AppConfig {
     prompt: e.prompt !== undefined ? String(e.prompt) : undefined,
   }));
 
+  const community: CommunityProvider[] = (json.community || []).map((p: Record<string, unknown>) => ({
+    provider: String(p.provider),
+    endpoint: String(p.endpoint),
+    models: ((p.models || []) as Record<string, unknown>[]).map((m) => ({
+      model: String(m.model),
+      alias: String(m.alias || m.model),
+    })),
+  }));
+
   return {
     prompt: String(json.prompt || "Write a 2000 word long story"),
     interval: Number(json.interval || 7200) * 1000,
     requestTimeout: Number(json.requestTimeout || 120) * 1000,
     port: parseInt(process.env.PORT || "3000", 10),
     entries,
+    community,
   };
 }
 

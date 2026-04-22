@@ -19,5 +19,22 @@
       "interval": 3600,
       "prompt": "Write a poem"
     }
+  ],
+  "community": [
+    {
+      "provider": "OpenRouter",
+      "endpoint": "https://openrouter.ai/api/v1",
+      "models": [
+        { "model": "anthropic/claude-3.5-sonnet", "alias": "Claude 3.5 Sonnet" },
+        { "model": "openai/gpt-4o", "alias": "GPT-4o" }
+      ]
+    },
+    {
+      "provider": "Ollama",
+      "endpoint": "http://ollama.com/v1",
+      "models": [
+        { "model": "llama3.1:8b", "alias": "Llama 3.1 8B" }
+      ]
+    }
   ]
 }

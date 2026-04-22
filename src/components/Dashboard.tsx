@@ -155,14 +155,13 @@ export default function Dashboard() {
     : undefined;
 
   return (
-    <div className="min-h-screen bg-bg-primary text-text-primary">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold">AIPI Bench</h1>
-          <PeriodSelector period={period} onPeriodChange={setPeriod} periods={tablePeriods} />
-        </div>
+    <>
+      <div className="flex items-center justify-between mb-8">
+        <div />
+        <PeriodSelector period={period} onPeriodChange={setPeriod} periods={tablePeriods} />
+      </div>
 
-        <div className="bg-bg-card rounded-xl border border-border p-6 mb-6">
+      <div className="bg-bg-card rounded-xl border border-border p-6 mb-6">
           <StatsTable
             stats={stats}
             selectedKey={selectedKey}
@@ -212,7 +211,6 @@ export default function Dashboard() {
             View on GitHub
           </a>
         </footer>
-      </div>
-    </div>
+    </>
   );
 }
