@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PeriodSelector from "./PeriodSelector";
 import StatsTable from "./StatsTable";
 import TtftChart from "./TtftChart";
@@ -34,58 +34,60 @@ const chartPeriods = [
   { value: "7d", label: "7d" },
 ];
 
+function sortStats(data: ModelStats[], field: string | null, direction: "asc" | "desc"): ModelStats[] {
+  if (!field) return data;
+  const dir = direction === "asc" ? 1 : -1;
+
+  return [...data].sort((a, b) => {
+    function getVal(s: ModelStats, f: string): number | string | null {
+      switch (f) {
+        case "provider": return s.provider;
+        case "model": return s.alias || s.model;
+        case "overall": return s.overallPct;
+        case "ttft": return s.ttftAvgMs;
+        case "tps": return s.tpsAvg;
+        case "time": return s.timeAvgMs;
+        default: return null;
+      }
+    }
+
+    const aVal = getVal(a, field);
+    const bVal = getVal(b, field);
+
+    // Nulls always go to the end
+    const aNull = aVal === null;
+    const bNull = bVal === null;
+    if (aNull && bNull) return 0;
+    if (aNull) return 1;
+    if (bNull) return -1;
+
+    let cmp = 0;
+    if (typeof aVal === "string" && typeof bVal === "string") {
+      cmp = aVal.localeCompare(bVal);
+    } else if (typeof aVal === "number" && typeof bVal === "number") {
+      cmp = aVal - bVal;
+    }
+
+    // Provider tie-breaker: sort by model
+    if (field === "provider" && cmp === 0) {
+      cmp = (a.alias || a.model).localeCompare(b.alias || b.model);
+    }
+
+    return cmp * dir;
+  });
+}
+
 export default function Dashboard() {
   const [period, setPeriod] = useState("5hr");
   const [chartPeriod, setChartPeriod] = useState("24hr");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [stats, setStats] = useState<ModelStats[]>([]);
+  const [rawStats, setRawStats] = useState<ModelStats[]>([]);
   const [chartData, setChartData] = useState<Record<string, Array<{ timestamp: string; ttft: number | null; tps: number | null; time: number | null }>>>({});
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  function sortStats(data: ModelStats[]): ModelStats[] {
-    if (!sortField) return data;
-    const dir = sortDirection === "asc" ? 1 : -1;
-
-    return [...data].sort((a, b) => {
-      function getVal(s: ModelStats, f: string): number | string | null {
-        switch (f) {
-          case "provider": return s.provider;
-          case "model": return s.alias || s.model;
-          case "overall": return s.overallPct;
-          case "ttft": return s.ttftAvgMs;
-          case "tps": return s.tpsAvg;
-          case "time": return s.timeAvgMs;
-          default: return null;
-        }
-      }
-
-      const aVal = getVal(a, sortField);
-      const bVal = getVal(b, sortField);
-
-      // Nulls always go to the end
-      const aNull = aVal === null;
-      const bNull = bVal === null;
-      if (aNull && bNull) return 0;
-      if (aNull) return 1;
-      if (bNull) return -1;
-
-      let cmp = 0;
-      if (typeof aVal === "string" && typeof bVal === "string") {
-        cmp = aVal.localeCompare(bVal);
-      } else if (typeof aVal === "number" && typeof bVal === "number") {
-        cmp = aVal - bVal;
-      }
-
-      // Provider tie-breaker: sort by model
-      if (sortField === "provider" && cmp === 0) {
-        cmp = (a.alias || a.model).localeCompare(b.alias || b.model);
-      }
-
-      return cmp * dir;
-    });
-  }
+  const stats = useMemo(() => sortStats(rawStats, sortField, sortDirection), [rawStats, sortField, sortDirection]);
 
   function handleSort(field: string) {
     if (sortField === field) {
@@ -106,18 +108,13 @@ export default function Dashboard() {
       try {
         const res = await fetch(`/api/stats?period=${period}`);
         const data: StatsResponse = await res.json();
-        setStats(sortStats(data.models));
+        setRawStats(data.models);
       } catch (err) {
         console.error("Failed to fetch stats:", err);
       }
     }
     fetchStats();
   }, [period]);
-
-  // Re-sort when sort params change
-  useEffect(() => {
-    setStats((prev) => sortStats(prev));
-  }, [sortField, sortDirection]);
 
   useEffect(() => {
     async function fetchChartData() {
