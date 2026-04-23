@@ -182,16 +182,71 @@ export default function CommunityBench() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: selectedProvider, model: selectedModel, apiKey }),
       });
-      const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        setContributeError(data.errorMessage || data.error || "Benchmark failed");
-      } else {
-        setLastResult({ ttftMs: data.ttftMs, tps: data.tps });
+      if (!res.ok) {
+        const text = await res.text();
+        let message = "Benchmark failed";
+        try {
+          const parsed = JSON.parse(text);
+          message = parsed.data?.message || parsed.error || message;
+        } catch {
+          message = text || message;
+        }
+        setContributeError(message);
+        setContributeLoading(false);
+        return;
+      }
+
+      if (!res.body) {
+        setContributeError("No response body");
+        setContributeLoading(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalResult: { ttftMs: number; tps: number } | null = null;
+      let errorMessage: string | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line) continue;
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.event === "result") {
+              const data = parsed.data;
+              if (data.success) {
+                finalResult = { ttftMs: data.ttftMs, tps: data.tps };
+              } else {
+                errorMessage = data.errorMessage || "Benchmark failed";
+              }
+            } else if (parsed.event === "error") {
+              errorMessage = parsed.data?.message || "Benchmark failed";
+            }
+          } catch {
+            // skip malformed lines
+          }
+        }
+      }
+
+      if (errorMessage) {
+        setContributeError(errorMessage);
+      } else if (finalResult) {
+        setLastResult(finalResult);
         // Refresh stats
         const statsRes = await fetch(`/api/community/stats?period=${period}`);
         const statsData: CommunityStatsResponse = await statsRes.json();
         setRawStats(statsData.models);
+      } else {
+        setContributeError("No result received");
       }
     } catch (err) {
       setContributeError("Network error. Please try again.");

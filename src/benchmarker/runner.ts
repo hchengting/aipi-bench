@@ -1,6 +1,7 @@
 import { parseSSEStream } from "./sse-parser";
 import { config } from "@/lib/config";
 import type { ConfigEntry } from "@/lib/config";
+import type { SSEChunk } from "./sse-parser";
 
 export interface BenchmarkResult {
   success: boolean;
@@ -12,7 +13,10 @@ export interface BenchmarkResult {
   errorMessage: string | null;
 }
 
-export async function runBenchmark(entry: ConfigEntry): Promise<BenchmarkResult> {
+export async function runBenchmark(
+  entry: ConfigEntry,
+  onChunk?: (chunk: SSEChunk) => void
+): Promise<BenchmarkResult> {
   const promptText = entry.prompt ?? config.prompt;
   const prompt = `[${new Date().toISOString()}] ${promptText}`;
   const startTime = performance.now();
@@ -56,6 +60,14 @@ export async function runBenchmark(entry: ConfigEntry): Promise<BenchmarkResult>
     let firstContentChunk = true;
 
     for await (const chunk of parseSSEStream(response)) {
+      if (onChunk) {
+        try {
+          onChunk(chunk);
+        } catch {
+          // ignore callback errors
+        }
+      }
+
       const delta = chunk.choices?.[0]?.delta;
       if (delta?.content && firstContentChunk) {
         ttftMs = Math.round(performance.now() - startTime);

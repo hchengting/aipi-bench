@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { config } from "@/lib/config";
 import { runBenchmark } from "@/benchmarker/runner";
 import { prisma } from "@/lib/db";
@@ -10,25 +10,25 @@ export async function POST(request: NextRequest) {
   const cleanKey = apiKey.trim();
 
   if (!provider || !model || !cleanKey) {
-    return NextResponse.json(
-      { error: "Missing provider, model, or apiKey" },
-      { status: 400 }
+    return new Response(
+      JSON.stringify({ event: "error", data: { message: "Missing provider, model, or apiKey" } }) + "\n",
+      { status: 400, headers: { "Content-Type": "application/x-ndjson" } }
     );
   }
 
   const providerConfig = config.community?.find((p) => p.provider === provider);
   if (!providerConfig) {
-    return NextResponse.json(
-      { error: "Provider not found" },
-      { status: 400 }
+    return new Response(
+      JSON.stringify({ event: "error", data: { message: "Provider not found" } }) + "\n",
+      { status: 400, headers: { "Content-Type": "application/x-ndjson" } }
     );
   }
 
   const modelConfig = providerConfig.models.find((m) => m.model === model);
   if (!modelConfig) {
-    return NextResponse.json(
-      { error: "Model not found" },
-      { status: 400 }
+    return new Response(
+      JSON.stringify({ event: "error", data: { message: "Model not found" } }) + "\n",
+      { status: 400, headers: { "Content-Type": "application/x-ndjson" } }
     );
   }
 
@@ -40,24 +40,50 @@ export async function POST(request: NextRequest) {
     alias: modelConfig.alias,
   };
 
-  const result = await runBenchmark(entry);
+  const encoder = new TextEncoder();
 
-  if (result.success) {
-    await prisma.communityResult.create({
-      data: {
-        provider: entry.provider,
-        model: entry.model,
-        alias: entry.alias,
-        ttftMs: result.ttftMs,
-        tps: result.tps,
-      },
-    });
-  }
+  const stream = new ReadableStream({
+    async start(controller) {
+      function send(event: string, data: unknown) {
+        controller.enqueue(
+          encoder.encode(JSON.stringify({ event, data }) + "\n")
+        );
+      }
 
-  return NextResponse.json({
-    success: result.success,
-    ttftMs: result.ttftMs,
-    tps: result.tps,
-    errorMessage: result.errorMessage,
+      try {
+        const result = await runBenchmark(entry, (chunk) => {
+          const delta = chunk.choices?.[0]?.delta;
+          if (delta?.content) {
+            send("chunk", { content: delta.content });
+          }
+          if (chunk.usage?.completion_tokens) {
+            send("progress", { tokens: chunk.usage.completion_tokens });
+          }
+        });
+
+        if (result.success) {
+          await prisma.communityResult.create({
+            data: {
+              provider: entry.provider,
+              model: entry.model,
+              alias: entry.alias,
+              ttftMs: result.ttftMs,
+              tps: result.tps,
+            },
+          });
+        }
+
+        send("result", result);
+        controller.close();
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        send("error", { message });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "application/x-ndjson" },
   });
 }
