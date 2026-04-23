@@ -31,7 +31,7 @@ Set environment variables in `.env`:
 | `API_KEY` | (empty) | API key (not needed for local Ollama) |
 | `MODELS` | `llama3` | Comma-separated model names |
 | `BENCHMARK_INTERVAL` | `7200000` | Interval in ms (2 hours default) |
-| `BENCHMARK_PROMPT` | `Write a 2000 word long story` | Prompt text |
+| `BENCHMARK_PROMPT` | `You are a short-story writer. Write a compelling 2,000-word story with a clear conflict and emotional ending.` | Prompt text |
 | `REQUEST_TIMEOUT` | `120000` | Request timeout in ms |
 
 ## Docker

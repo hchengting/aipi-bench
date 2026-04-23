@@ -244,7 +244,7 @@ export default function CommunityBench() {
                 It exists only in memory for the duration of the benchmark run.
               </p>
               <p className="text-muted">
-                <span className="font-medium text-text-primary">Prompt:</span> {prompt || "Write a 2000 word long story"}
+                <span className="font-medium text-text-primary">Prompt:</span> {prompt || "You are a short-story writer. Write a compelling 2,000-word story with a clear conflict and emotional ending."}
               </p>
             </div>
 

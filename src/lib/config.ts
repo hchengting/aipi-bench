@@ -55,7 +55,7 @@ function loadConfig(): AppConfig {
   }));
 
   return {
-    prompt: String(json.prompt || "Write a 2000 word long story"),
+    prompt: String(json.prompt || "You are a short-story writer. Write a compelling 2,000-word story with a clear conflict and emotional ending."),
     interval: Number(json.interval || 7200) * 1000,
     requestTimeout: Number(json.requestTimeout || 120) * 1000,
     port: parseInt(process.env.PORT || "3000", 10),

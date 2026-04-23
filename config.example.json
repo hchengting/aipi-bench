@@ -1,5 +1,5 @@
 {
-  "prompt": "Write a 2000 word long story",
+  "prompt": "You are a short-story writer. Write a compelling 2,000-word story with a clear conflict and emotional ending.",
   "interval": 7200,
   "requestTimeout": 120,
   "entries": [
