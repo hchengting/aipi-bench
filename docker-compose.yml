@@ -1,13 +1,12 @@
 services:
   aipi-bench:
     build: .
+    container_name: aipi-bench
+    restart: always
     ports:
-      - "${PORT:-3000}:3000"
+      - 1808:3000
+    env_file:
+      - .env
     volumes:
-      - ./data:/app/data
-      - ./config.json:/app/config.json:ro
-    environment:
-      - DATABASE_URL=file:/app/data/benchmarks.db
-      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET:?ADMIN_JWT_SECRET must be set}
-      - COOKIE_SECURE=${COOKIE_SECURE:-true}
-    restart: unless-stopped
+      - /home/user/projects/aipi-bench/data:/app/data
+      - /home/user/projects/aipi-bench/config.json:/app/config.json:ro
