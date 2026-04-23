@@ -418,7 +418,12 @@ export default function CommunityBench() {
             </div>
           )}
         </div>
-      ) : null}
+      ) : (
+        <div className="bg-bg-card rounded-xl border border-border p-12 text-center">
+          <p className="text-muted text-lg mb-2">Select a model from the table to view detailed charts.</p>
+          <p className="text-muted text-sm">Click on any row above to see TTFT and TPS graphs for that model.</p>
+        </div>
+      )}
 
       <footer className="mt-12 flex items-center justify-center gap-4">
         <a
