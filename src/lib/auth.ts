@@ -77,11 +77,11 @@ export async function getUserFromRequest(request: Request) {
 }
 
 export function sessionCookieString(token: string): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = process.env.COOKIE_SECURE === "true" ? "; Secure" : "";
   return `${SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=${SESSION_MAX_AGE}; SameSite=Strict${secure}`;
 }
 
 export function clearSessionCookieString(): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = process.env.COOKIE_SECURE === "true" ? "; Secure" : "";
   return `${SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict${secure}`;
 }
