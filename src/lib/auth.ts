@@ -76,6 +76,26 @@ export async function getUserFromRequest(request: Request) {
   return prisma.user.findUnique({ where: { id: session.userId } });
 }
 
+export async function requireAuth(request: Request) {
+  const user = await getUserFromRequest(request);
+  if (!user) {
+    const error = new Error("Unauthorized");
+    (error as Error & { statusCode: number }).statusCode = 401;
+    throw error;
+  }
+  return user;
+}
+
+export async function requireAdmin(request: Request) {
+  const user = await requireAuth(request);
+  if (user.role !== "admin") {
+    const error = new Error("Forbidden");
+    (error as Error & { statusCode: number }).statusCode = 403;
+    throw error;
+  }
+  return user;
+}
+
 export function sessionCookieString(token: string): string {
   const secure = process.env.COOKIE_SECURE === "true" ? "; Secure" : "";
   return `${SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=${SESSION_MAX_AGE}; SameSite=Strict${secure}`;
