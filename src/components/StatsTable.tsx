@@ -5,7 +5,7 @@ import type { ModelStats } from "@/lib/stats";
 
 interface StatsTableProps {
   stats: ModelStats[];
-  selectedKey?: string | null;
+  selectedKeys?: Set<string>;
   onRowClick?: (key: string) => void;
   sortField?: string | null;
   sortDirection?: "asc" | "desc";
@@ -40,7 +40,7 @@ function SortIndicator({
   );
 }
 
-export default function StatsTable({ stats, selectedKey, onRowClick, sortField, sortDirection, onSort }: StatsTableProps) {
+export default function StatsTable({ stats, selectedKeys, onRowClick, sortField, sortDirection, onSort }: StatsTableProps) {
   if (stats.length === 0) {
     return <p className="text-muted text-center py-8">No data yet. Waiting for benchmark results...</p>;
   }
@@ -86,7 +86,7 @@ export default function StatsTable({ stats, selectedKey, onRowClick, sortField, 
               <tr
                 key={key}
                 className={`border-b border-border/50 cursor-pointer transition-colors ${
-                  selectedKey === key ? "bg-accent-blue/10" : "hover:bg-bg-card/50"
+                  selectedKeys?.has(key) ? "bg-accent-blue/10" : "hover:bg-bg-card/50"
                 }`}
                 onClick={() => onRowClick?.(key)}
               >

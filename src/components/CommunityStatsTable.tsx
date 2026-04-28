@@ -5,7 +5,7 @@ import type { ModelStats } from "@/lib/stats";
 
 interface CommunityStatsTableProps {
   stats: ModelStats[];
-  selectedKey?: string | null;
+  selectedKeys?: Set<string>;
   onRowClick?: (key: string) => void;
   sortField?: string | null;
   sortDirection?: "asc" | "desc";
@@ -40,7 +40,7 @@ function SortIndicator({
   );
 }
 
-export default function CommunityStatsTable({ stats, selectedKey, onRowClick, sortField, sortDirection, onSort }: CommunityStatsTableProps) {
+export default function CommunityStatsTable({ stats, selectedKeys, onRowClick, sortField, sortDirection, onSort }: CommunityStatsTableProps) {
   if (stats.length === 0) {
     return <p className="text-muted text-center py-8">No community benchmarks yet. Be the first to contribute!</p>;
   }
@@ -82,7 +82,7 @@ export default function CommunityStatsTable({ stats, selectedKey, onRowClick, so
               <tr
                 key={key}
                 className={`border-b border-border/50 cursor-pointer transition-colors ${
-                  selectedKey === key ? "bg-accent-blue/10" : "hover:bg-bg-card/50"
+                  selectedKeys?.has(key) ? "bg-accent-blue/10" : "hover:bg-bg-card/50"
                 }`}
                 onClick={() => onRowClick?.(key)}
               >

@@ -1,6 +1,6 @@
 "use client";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend } from "recharts";
 
 interface ChartDataPoint {
   timestamp: string;
@@ -165,6 +165,12 @@ export default function TimeSeriesChart({ data, modelInfo, title, unit, decimals
           />
           <YAxis stroke="#8b949e" fontSize={12} />
           <Tooltip content={<ChartTooltip modelInfo={modelInfo} unit={unit} decimals={decimals} />} />
+          <Legend
+            formatter={(value: string) => {
+              const info = modelInfo?.[value];
+              return info?.alias || info?.model || value;
+            }}
+          />
           <Brush dataKey="timestamp" height={30} stroke="#58a6ff" tickFormatter={tickFormatter} />
           {models.map((model, i) => (
             <Line
@@ -175,6 +181,7 @@ export default function TimeSeriesChart({ data, modelInfo, title, unit, decimals
               stroke={COLORS[i % COLORS.length]}
               dot={false}
               strokeWidth={2}
+              connectNulls={true}
             />
           ))}
         </LineChart>

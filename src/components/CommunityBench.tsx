@@ -94,7 +94,7 @@ export default function CommunityBench() {
 
   const [rawStats, setRawStats] = useState<ModelStats[]>([]);
   const [chartPeriod, setChartPeriod] = useState<string>("24hr");
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [chartData, setChartData] = useState<Record<string, Array<{ timestamp: string; ttft: number | null; tps: number | null }>>>({});
   const [chartLoading, setChartLoading] = useState(false);
   const [sortField, setSortField] = useState<string | null>(null);
@@ -133,7 +133,7 @@ export default function CommunityBench() {
 
   useEffect(() => {
     async function fetchChartData() {
-      if (!selectedKey) return;
+      if (selectedKeys.size === 0) return;
       setChartLoading(true);
       try {
         const res = await fetch(`/api/community/chart-data?period=${chartPeriod}`);
@@ -146,7 +146,7 @@ export default function CommunityBench() {
       }
     }
     fetchChartData();
-  }, [selectedKey, chartPeriod]);
+  }, [Array.from(selectedKeys).join(","), chartPeriod]);
 
   function handleSort(field: string) {
     if (sortField === field) {
@@ -162,13 +162,17 @@ export default function CommunityBench() {
   }
 
   function handleRowClick(key: string) {
-    if (selectedKey === key) {
-      setSelectedKey(null);
-    } else {
-      const validChart = chartPeriods.map((p) => p.value);
-      setChartPeriod(validChart.includes(period) ? period : "24hr");
-      setSelectedKey(key);
-    }
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        const validChart = chartPeriods.map((p) => p.value);
+        setChartPeriod(validChart.includes(period) ? period : "24hr");
+        next.add(key);
+      }
+      return next;
+    });
   }
 
   async function handleRunBenchmark() {
@@ -255,16 +259,36 @@ export default function CommunityBench() {
     }
   }
 
-  const selectedStat = stats.find((s) => `${s.provider}|${s.model}` === selectedKey);
-  const displayName = selectedStat?.alias || selectedStat?.model || selectedKey || "";
+  const displayName = useMemo(() => {
+    if (selectedKeys.size === 0) return "";
+    if (selectedKeys.size === 1) {
+      const key = Array.from(selectedKeys)[0];
+      const stat = stats.find((s) => `${s.provider}|${s.model}` === key);
+      return stat?.alias || stat?.model || key;
+    }
+    return `${selectedKeys.size} models selected`;
+  }, [selectedKeys, stats]);
 
-  const filteredChartData = selectedKey
-    ? { [selectedKey]: chartData[selectedKey] ?? [] }
-    : {};
+  const filteredChartData = useMemo(() => {
+    const result: Record<string, Array<{ timestamp: string; ttft: number | null; tps: number | null }>> = {};
+    for (const key of selectedKeys) {
+      if (chartData[key]) {
+        result[key] = chartData[key];
+      }
+    }
+    return result;
+  }, [selectedKeys, chartData]);
 
-  const modelInfo = selectedStat && selectedKey
-    ? { [selectedKey]: { alias: selectedStat.alias, provider: selectedStat.provider, model: selectedStat.model } }
-    : undefined;
+  const modelInfo = useMemo(() => {
+    const result: Record<string, { alias: string | null; provider: string; model: string }> = {};
+    for (const key of selectedKeys) {
+      const stat = stats.find((s) => `${s.provider}|${s.model}` === key);
+      if (stat) {
+        result[key] = { alias: stat.alias, provider: stat.provider, model: stat.model };
+      }
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  }, [selectedKeys, stats]);
 
   return (
     <div className="space-y-6">
@@ -390,7 +414,7 @@ export default function CommunityBench() {
       <div className="bg-bg-card rounded-xl border border-border p-6">
         <CommunityStatsTable
           stats={stats}
-          selectedKey={selectedKey}
+          selectedKeys={selectedKeys}
           onRowClick={handleRowClick}
           sortField={sortField}
           sortDirection={sortDirection}
@@ -399,7 +423,7 @@ export default function CommunityBench() {
       </div>
 
       {/* Charts */}
-      {selectedKey ? (
+      {selectedKeys.size > 0 ? (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">{displayName}</h2>
@@ -420,7 +444,7 @@ export default function CommunityBench() {
         </div>
       ) : (
         <div className="bg-bg-card rounded-xl border border-border p-12 text-center">
-          <p className="text-muted text-lg mb-2">Select a model from the table to view detailed charts.</p>
+          <p className="text-muted text-lg mb-2">Select models from the table to view detailed charts.</p>
           <p className="text-muted text-sm">Click on any row above to see TTFT and TPS graphs for that model.</p>
         </div>
       )}
