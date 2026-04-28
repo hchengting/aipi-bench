@@ -9,8 +9,22 @@ interface ScheduleState {
   running: boolean;
 }
 
+interface BenchmarkStatus {
+  running: boolean;
+  startedAt: number | null;
+  finishedAt: number | null;
+  runBy: "manual" | "scheduler" | null;
+}
+
 let tickId: ReturnType<typeof setInterval> | null = null;
 const schedules = new Map<string, ScheduleState>();
+
+const status: BenchmarkStatus = {
+  running: false,
+  startedAt: null,
+  finishedAt: null,
+  runBy: null,
+};
 
 function entryKey(entry: ConfigEntry): string {
   return `${entry.provider}|${entry.model}`;
@@ -44,11 +58,11 @@ async function runEntry(state: ScheduleState) {
       },
     });
 
-    const status = result.success
+    const logStatus = result.success
       ? `TTFT=${result.ttftMs}ms TPS=${result.tps} Time=${result.totalTimeMs}ms`
       : `FAILED: ${result.errorMessage}`;
 
-    console.log(`[benchmarker] ${entry.provider}/${entry.model}: ${status}`);
+    console.log(`[benchmarker] ${entry.provider}/${entry.model}: ${logStatus}`);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error(`[benchmarker] Error running ${entry.provider}/${entry.model}:`, message);
@@ -68,22 +82,54 @@ async function tick() {
     }
   }
 
-  for (const state of due) {
-    runEntry(state).catch((err) =>
-      console.error(`[benchmarker] Error running ${state.entry.provider}/${state.entry.model}:`, err)
+  if (due.length === 0) return;
+
+  const startedAt = Date.now();
+  status.running = true;
+  status.startedAt = startedAt;
+  status.runBy = "scheduler";
+
+  try {
+    await Promise.allSettled(
+      due.map((state) =>
+        runEntry(state).catch((err) =>
+          console.error(`[benchmarker] Error running ${state.entry.provider}/${state.entry.model}:`, err)
+        )
+      )
     );
+  } finally {
+    status.running = false;
+    status.finishedAt = Date.now();
   }
 }
 
-export async function runAllModels() {
+export function getBenchmarkStatus(): Readonly<BenchmarkStatus> {
+  return status;
+}
+
+export async function runAllModels(): Promise<{ started: boolean; reason?: string }> {
+  if (status.running) {
+    return { started: false, reason: "already_running" };
+  }
+
+  status.running = true;
+  status.startedAt = Date.now();
+  status.runBy = "manual";
+
   console.log(`[benchmarker] Running all ${config.entries.length} entries immediately`);
 
-  for (const entry of config.entries) {
-    const key = entryKey(entry);
-    const state = schedules.get(key);
-    if (state) {
-      await runEntry(state);
+  try {
+    for (const entry of config.entries) {
+      const key = entryKey(entry);
+      const state = schedules.get(key);
+      if (state) {
+        await runEntry(state);
+      }
     }
+    return { started: true };
+  } finally {
+    status.running = false;
+    status.finishedAt = Date.now();
   }
 }
 

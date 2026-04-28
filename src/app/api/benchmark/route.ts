@@ -6,13 +6,14 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin(request);
 
-    // Fire-and-forget so the HTTP response returns immediately.
-    // The benchmarks run in the background; calling code should poll
-    // /api/stats or rely on the scheduler instead of waiting.
-    runAllModels().catch((err: unknown) => {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      console.error("[benchmarker] Background runAllModels failed:", message);
-    });
+    const result = await runAllModels();
+
+    if (!result.started && result.reason === "already_running") {
+      return NextResponse.json(
+        { status: "already_running" },
+        { status: 429 }
+      );
+    }
 
     return NextResponse.json({ status: "started" });
   } catch (err: unknown) {

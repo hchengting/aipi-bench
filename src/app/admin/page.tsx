@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getBenchmarkStatus } from "@/benchmarker/scheduler";
+import { formatRelativeTime, formatDuration } from "@/lib/time";
 import RunBenchmarkButton from "@/components/RunBenchmarkButton";
 
 export default async function AdminDashboardPage() {
@@ -52,6 +54,8 @@ export default async function AdminDashboardPage() {
       ? last24hCommunity.reduce((sum, r) => sum + (r.tps ?? 0), 0) / last24hCommunity.length
       : null;
 
+  const benchStatus = getBenchmarkStatus();
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
@@ -87,6 +91,42 @@ export default async function AdminDashboardPage() {
       <div className="bg-bg-card rounded-xl border border-border p-6">
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <RunBenchmarkButton />
+      </div>
+
+      <div className="bg-bg-card rounded-xl border border-border p-6 mt-6">
+        <h2 className="text-lg font-semibold mb-4">Benchmark Status</h2>
+        <div className="space-y-3 text-sm">
+          <MetricRow
+            label="Status"
+            value={
+              benchStatus.running
+                ? `Running (${benchStatus.runBy === "scheduler" ? "scheduled" : "manual"})`
+                : "Idle"
+            }
+          />
+          <MetricRow
+            label="Last Started"
+            value={
+              benchStatus.startedAt !== null
+                ? `${formatRelativeTime(benchStatus.startedAt)} (${new Date(benchStatus.startedAt).toLocaleString()})`
+                : "—"
+            }
+          />
+          <MetricRow
+            label="Last Finished"
+            value={
+              benchStatus.finishedAt !== null
+                ? `${formatRelativeTime(benchStatus.finishedAt)} (${new Date(benchStatus.finishedAt).toLocaleString()})`
+                : "—"
+            }
+          />
+          {benchStatus.running && benchStatus.startedAt !== null && (
+            <MetricRow
+              label="Duration"
+              value={formatDuration(benchStatus.startedAt, benchStatus.finishedAt)}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
