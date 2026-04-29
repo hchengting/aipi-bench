@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { config } from "@/lib/config";
 import { computeStats } from "@/lib/stats";
 
 const PERIOD_MS: Record<string, number> = {
@@ -10,11 +11,15 @@ const PERIOD_MS: Record<string, number> = {
 
 export async function GET(request: NextRequest) {
   const period = request.nextUrl.searchParams.get("period") || "5hr";
+  const modelEntries = config.entries.map((e) => ({ provider: e.provider, model: e.model.toLowerCase() }));
 
   if (period === "now") {
     const since = new Date(Date.now() - 5 * 60 * 60 * 1000);
     const recent = await prisma.result.findMany({
-      where: { timestamp: { gte: since } },
+      where: {
+        timestamp: { gte: since },
+        OR: modelEntries,
+      },
       orderBy: { timestamp: "desc" },
       take: 500,
       select: {
@@ -50,7 +55,10 @@ export async function GET(request: NextRequest) {
 
   const since = new Date(Date.now() - ms);
   const rows = await prisma.result.findMany({
-    where: { timestamp: { gte: since } },
+    where: {
+      timestamp: { gte: since },
+      OR: modelEntries,
+    },
     select: {
       provider: true,
       model: true,
